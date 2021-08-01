@@ -3,17 +3,20 @@ import random
 import pygame
 from pygame import Rect
 
-WIDTH = 960
-HEIGHT = 720
+WIDTH = 480
+HEIGHT = 360
 RECT_WIDTH = 40
 RECT_HEIGHT = 15
 PLAYER_WIDTH = 60
 PLAYER_HEIGHT = 10
-BALL_WIDTH = WIDTH / 2
-BALL_HEIGHT = HEIGHT / 2 + 50
+BALL_X = WIDTH / 2
+BALL_Y = HEIGHT / 2 + 50
 BALL_RADIUS = 5
+PLAYER_X = WIDTH / 2 - PLAYER_WIDTH / 2
+PLAYER_Y = HEIGHT - 10
+SPEED = 0.125
 
-KEYS = [(-1, 0), (1, 0)]
+KEYS = [-0.25, 0.25]
 
 BLACK = (0, 0, 0)
 WHITE = (255, 255, 255)
@@ -36,29 +39,29 @@ class Brick(Rect):
 
 class Player(Rect):
     def __init__(self):
-        Rect.__init__(self, WIDTH / 2 - PLAYER_WIDTH / 2, HEIGHT - 10, PLAYER_WIDTH, PLAYER_HEIGHT)
+        Rect.__init__(self, PLAYER_X, PLAYER_Y, PLAYER_WIDTH, PLAYER_HEIGHT)
 
 
-def ball_direct(x, y, directX, directY):
-    nextX = x + directX
-    nextY = y + directY
+def ball_direct(directX, directY):
+    nextX = BALL_X + directX
+    nextY = BALL_Y + directY
     get_brick = None
     for brick in bricks:
         if brick.left <= nextX <= brick.right:
-            if brick.top <= y <= brick.bottom:
+            if brick.top <= BALL_Y <= brick.bottom:
                 directX *= -1
                 get_brick = brick
         if brick.top <= nextY <= brick.bottom:
-            if brick.left <= x <= brick.right:
+            if brick.left <= BALL_X <= brick.right:
                 directY *= -1
                 get_brick = brick
     if get_brick is not None:
         bricks.remove(get_brick)
     if player.left <= nextX <= player.right:
-        if player.top <= y <= player.bottom:
+        if player.top <= BALL_Y <= player.bottom:
             directX *= -1
     if player.top <= nextY <= player.bottom:
-        if player.left <= x <= player.right:
+        if player.left <= BALL_X <= player.right:
             directY *= -1
     if 0 >= nextX or nextX >= WIDTH:
         directX *= -1
@@ -77,7 +80,7 @@ for i in range(1, int(HEIGHT / 2 / RECT_HEIGHT) - 1):   # 벽돌 초기화
 
 
 def main():
-    global BALL_WIDTH, BALL_HEIGHT
+    global BALL_X, BALL_Y, PLAYER_X, PLAYER_Y
     direct = -1  # -1 은 제자리, 0은 왼쪽, 1은 오른쪽
     is_two_keys = 0  # 키 두개 누른 상태면 1 아니면 0
     game_flag = 0
@@ -92,7 +95,7 @@ def main():
     font = pygame.font.Font(None, 25)
 
     screen = pygame.display.set_mode((WIDTH, HEIGHT))
-    ball = dict(surface=screen, color=WHITE, center=(BALL_WIDTH, BALL_HEIGHT), radius=BALL_RADIUS)
+    ball = dict(surface=screen, color=WHITE, center=(BALL_X, BALL_Y), radius=BALL_RADIUS)
 
     # 메인 루프를 제어할 변수 정의
     running = True
@@ -128,9 +131,11 @@ def main():
                     else:
                         direct = -1
 
-        if direct >= 0:
-            player.move_ip(KEYS[direct])
         screen.fill(BLACK)
+        if direct >= 0:
+            if player.left + KEYS[direct] > 0 and player.right + KEYS[direct] < WIDTH:
+                PLAYER_X += KEYS[direct]
+                player.center = (PLAYER_X, PLAYER_Y)
         for r in bricks:
             pygame.draw.rect(screen, r.color, r)
         if game_flag == 0:
@@ -140,10 +145,10 @@ def main():
                 game_flag = 1
             pygame.time.wait(1000)
         elif game_flag == 1:
-            directX, directY = ball_direct(BALL_WIDTH, BALL_HEIGHT, directX, directY)
-            BALL_WIDTH += 0.5 * directX
-            BALL_HEIGHT += 0.5 * directY
-            ball['center'] = (BALL_WIDTH, BALL_HEIGHT)
+            directX, directY = ball_direct(directX, directY)
+            BALL_X += SPEED * directX
+            BALL_Y += SPEED * directY
+            ball['center'] = (BALL_X, BALL_Y)
 
         pygame.draw.circle(**ball)
         pygame.draw.rect(screen, WHITE, player)
